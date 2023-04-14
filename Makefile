@@ -49,11 +49,11 @@ endif
 PROJ_DIR := $(CURDIR)
 DOCS_DIR := $(PROJ_DIR)/docs
 # LIB_DIR := $(PROJ_DIR)/libs/$(PROJ)
-SUBMODULES_DIR := $(LIB_DIR)/submodules
+# SUBMODULES_DIR := $(LIB_DIR)/submodules
 BUILD_DIR := $(PROJ_DIR)/build
 OBJ_DIR := $(BUILD_DIR)/obj
 TESTS_DST_DIR := $(BUILD_DIR)/tests
-TESTS_SOURCE_DIR := $(PROJ_DIR)/tests
+TESTS_SRC_DIR := $(PROJ_DIR)/tests
 
 _BUILD_DIRS := obj docs tests
 BUILD_DIRS := $(foreach dir, $(_BUILD_DIRS), $(addprefix $(BUILD_DIR)/, $(dir)))
@@ -62,7 +62,7 @@ directories := $(foreach dir, $(BUILD_DIRS), $(shell [ -d $(dir) ] || mkdir -p $
 
 
 # apps:= main
-tests:= Test.cGum#Test.Concepts.Char Test.Crypto.Base64#Test.Crypto.Symmetric.DES # Test.Async Test.App
+tests:= $(TESTS_DST_DIR)/Test.cGum#Test.Concepts.Char Test.Crypto.Base64#Test.Crypto.Symmetric.DES # Test.Async Test.App
 # all: $(tests) $(apps)
 all: $(tests)
 
@@ -255,10 +255,32 @@ MyBox := MyBox.o Client.o Server.o Net.o Net.HTTPS.o Net.HTTP.o Net.TLS.o Crypto
 # Array.o: Array.cpp 
 # 	$(GCC) $(CXX_FLAGS) -c $<
 
-$(OBJ_DIR)/cGum.o: $(PROJ_DIR)/cGum.cpp
+Same.o: submodules/Same.cpp
 	$(GCC) $(CXX_FLAGS) -c $< $(CXX_INCLUDES)
 
-$(TESTS_DST_DIR)/Test.cGum: $(TESTS_SOURCE_DIR)/Test.cGum.cpp $(OBJ_DIR)/cGum.o
+Convertible.o: submodules/Convertible.cpp
+	$(GCC) $(CXX_FLAGS) -c $< $(CXX_INCLUDES)
+
+Char.o: submodules/Char.cpp Convertible.o
+	$(GCC) $(CXX_FLAGS) -c $< $(CXX_INCLUDES)
+
+Float.o: submodules/Float.cpp Convertible.o
+	$(GCC) $(CXX_FLAGS) -c $< $(CXX_INCLUDES)
+
+Integer.o: submodules/Integer.cpp Convertible.o
+	$(GCC) $(CXX_FLAGS) -c $< $(CXX_INCLUDES)
+
+Number.o: submodules/Number.cpp Integer.o Float.o
+	$(GCC) $(CXX_FLAGS) -c $< $(CXX_INCLUDES)
+
+CGUM_MODULES := Number.o Integer.o Float.o Char.o Convertible.o Same.o
+
+cGum.o: cGum.cpp $(CGUM_MODULES)
+	$(GCC) $(CXX_FLAGS) -c $< $(CXX_INCLUDES)
+
+CGUM := cGum.o $(CGUM_MODULES)
+
+$(TESTS_DST_DIR)/Test.cGum: $(TESTS_SRC_DIR)/Test.cGum.cpp $(CGUM)
 	$(GCC) $(CXX_FLAGS) -Werror=unused-result -o $@ $^ $(CXX_LIBS) $(CXX_INCLUDES)
 
 main: main.cpp $(Net)
