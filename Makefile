@@ -5,7 +5,7 @@
 CXX = clang++
 # --verbose
 ############### C++ compiler flags ###################
-CXX_FLAGS = -D DEBUG -std=c++2b -fmodules-ts -fcompare-debug-second #-fconcepts-diagnostics-depth=2
+CXX_FLAGS = -D DEBUG -std=gnu++23 -fmodules-ts -fcompare-debug-second -O2 -fno-trapping-math -fno-math-errno -fno-signed-zeros #-fconcepts-diagnostics-depth=2
 CXX_MODULES = -fmodules-ts -fmodules -fbuiltin-module-map -fimplicit-modules -fimplicit-module-maps -fprebuilt-module-path=.
 
 CXX_APP_FLAGS = -lpthread 
@@ -30,7 +30,7 @@ ifeq ($(detected_OS),Darwin)
 	LIB_NLOHMANN := /opt/homebrew/Cellar/nlohmann-json/3.11.2
 	LIB_OPENSSL := /opt/homebrew/Cellar/openssl@3/3.1.0
 	GLSLC_COMPILER = $(VULKAN_SDK)/macOS/bin/glslc
-	GCC = /opt/homebrew/Cellar/gcc/12.2.0/bin/g++-12
+	GCC = /opt/homebrew/Cellar/gcc/13.2.0/bin/g++-13
 	CXX_FLAGS += -D MACOS -D FONTS_DIR=\"/System/Library/Fonts/Supplemental\"
 	CXX_LIBS = -L$(LIB_OPENSSL)/lib -lssl -lcrypto -L/opt/homebrew/lib -L/opt/homebrew/Cellar/glfw/3.3.8/lib -lglfw -L$(VULKAN_SDK)/macOS/lib -lvulkan.1.3.236 -lSDL2 -L/opt/homebrew/Cellar/freetype/2.13.0_1/lib -lfreetype
 	CXX_INCLUDES += -I$(LIB_OPENSSL)/include -I$(LIB_NLOHMANN) -I$(VULKAN_SDK)/macOS/include
@@ -155,8 +155,8 @@ Concepts.o: Concepts.cpp Concepts.Char.o Concepts.Convertible.o Concepts.Same.o
 
 Concepts := Concepts.o Concepts.Char.o $(Types)
 
-Byte.o: Byte.cpp 
-	$(GCC) $(CXX_FLAGS) -c $< $(CXX_INCLUDES)
+# Byte.o: Byte.cpp 
+# 	$(GCC) $(CXX_FLAGS) -c $< $(CXX_INCLUDES)
 
 File.o: File.cpp Concepts.Char.o
 	$(GCC) $(CXX_FLAGS) -c $< $(CXX_INCLUDES)
@@ -261,10 +261,13 @@ Same.o: submodules/Same.cpp
 Convertible.o: submodules/Convertible.cpp
 	$(GCC) $(CXX_FLAGS) -c $< $(CXX_INCLUDES)
 
+Byte.o: submodules/Byte.cpp
+	$(GCC) $(CXX_FLAGS) -c $< $(CXX_INCLUDES)
+
 Char.o: submodules/Char.cpp Convertible.o
 	$(GCC) $(CXX_FLAGS) -c $< $(CXX_INCLUDES)
 
-Float.o: submodules/Float.cpp Convertible.o
+Float.o: submodules/Float.cpp Convertible.o Byte.o
 	$(GCC) $(CXX_FLAGS) -c $< $(CXX_INCLUDES)
 
 Integer.o: submodules/Integer.cpp Convertible.o
@@ -273,7 +276,19 @@ Integer.o: submodules/Integer.cpp Convertible.o
 Number.o: submodules/Number.cpp Integer.o Float.o
 	$(GCC) $(CXX_FLAGS) -c $< $(CXX_INCLUDES)
 
-CGUM_MODULES := Number.o Integer.o Float.o Char.o Convertible.o Same.o
+# SSL.o: submodules/SSL.cpp Number.o Char.o Byte.o
+# 	$(GCC) $(CXX_FLAGS) -c $< $(CXX_INCLUDES)
+
+# TLS.o: submodules/TLS.cpp Number.o Char.o Byte.o
+# 	$(GCC) $(CXX_FLAGS) -c $< $(CXX_INCLUDES)
+
+TLS.o: submodules/Networking/TLS.cpp
+	$(GCC) $(CXX_FLAGS) -c $< $(CXX_INCLUDES)
+
+Networking.o: submodules/Networking/Networking.cpp TLS.o
+	$(GCC) $(CXX_FLAGS) -c $< $(CXX_INCLUDES)
+
+CGUM_MODULES := Networking.o TLS.o Number.o Integer.o Float.o Char.o Byte.o Convertible.o Same.o
 
 cGum.o: cGum.cpp $(CGUM_MODULES)
 	$(GCC) $(CXX_FLAGS) -c $< $(CXX_INCLUDES)
